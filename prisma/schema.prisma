@@ -1,0 +1,49 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Bảng User
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String    // Sẽ được hash bằng bcrypt
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Mối quan hệ: Một user có thể có nhiều Role, nhiều API Key
+  roles     UserRole[]
+  apiKeys   ApiKey[]
+}
+
+// 2. Bảng Role (Admin, User, Manager...)
+model Role {
+  id    Int        @id @default(autoincrement())
+  name  String     @unique // Ví dụ: "ADMIN", "USER"
+  users UserRole[]
+}
+
+// 3. Bảng trung gian để phân quyền Many-to-Many (Một user nhiều role, một role nhiều user)
+model UserRole {
+  userId Int
+  roleId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId]) // Khóa chính tổ hợp
+}
+
+// 4. Bảng lưu API Key cho bên thứ 3
+model ApiKey {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique // Chuỗi random dạng uuid hoặc token bảo mật
+  name      String   // Tên app bên thứ 3 (ví dụ: "App_Cua_Doi_Tac")
+  isActive  Boolean  @default(true)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
